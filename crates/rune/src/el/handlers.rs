@@ -126,6 +126,45 @@ impl El {
         self.handlers.on_drag_start = Some(Rc::new(move |s, tx| f(downcast::<S>(s), tx)));
         self
     }
+    /// Locks the pointer on a press, for mouse look in a game or 3D view: the cursor hides and
+    /// stays put, and raw mouse motion goes to `f` as `[dx, dy]` points, past any screen edge.
+    /// Escape (which the app doesn't hear), focus loss or the element going away lets go. While
+    /// locked, every click and wheel lands here. Desktop windows only; see
+    /// [`crate::Cx::pointer_locked`].
+    ///
+    /// ```
+    /// # use rune::el::el;
+    /// # struct Game { yaw: f32, pitch: f32 }
+    /// el().key("view").grow(1.0).pointer_lock(|s: &mut Game, [dx, dy], _| {
+    ///     s.yaw += dx * 0.2;
+    ///     s.pitch -= dy * 0.2;
+    /// });
+    /// ```
+    pub fn pointer_lock<S: 'static>(self, f: impl Fn(&mut S, [f32; 2], &mut Tx) + 'static) -> Self {
+        self.set_pointer_lock(crate::runtime::PointerLockRelease::Escape, f)
+    }
+    /// [`El::pointer_lock`] that also lets go when the button comes up, for knobs and scrubbed
+    /// numbers. An [`El::on_drag`] beside it hears `Phase::Down` and `Phase::Up` as usual, but no
+    /// `Phase::Move`.
+    ///
+    /// ```
+    /// # use rune::{Phase, el::el};
+    /// # struct Mixer { volume: f32 }
+    /// el().key("volume")
+    ///     .on_drag(|s: &mut Mixer, d, _| match d.phase {
+    ///         Phase::Down => d.data = s.volume,
+    ///         Phase::Up if d.cancelled() => s.volume = d.data,
+    ///         _ => {}
+    ///     })
+    ///     .pointer_lock_while_held(|s: &mut Mixer, [_, dy], _| s.volume = (s.volume - dy / 150.0).clamp(0.0, 1.0));
+    /// ```
+    pub fn pointer_lock_while_held<S: 'static>(self, f: impl Fn(&mut S, [f32; 2], &mut Tx) + 'static) -> Self {
+        self.set_pointer_lock(crate::runtime::PointerLockRelease::Release, f)
+    }
+    fn set_pointer_lock<S: 'static>(mut self, release: crate::runtime::PointerLockRelease, f: impl Fn(&mut S, [f32; 2], &mut Tx) + 'static) -> Self {
+        self.handlers.pointer_lock = Some(PointerLockSpec { release, motion: Rc::new(move |s, d, tx| f(downcast::<S>(s), d, tx)) });
+        self
+    }
     /// Called once when a [`El::drag_out`] drag ends, with what the drop did.
     pub fn on_drag_end<S: 'static>(mut self, f: impl Fn(&mut S, crate::DragOutcome, &mut Tx) + 'static) -> Self {
         self.handlers.on_drag_end = Some(Rc::new(move |s, outcome, tx| f(downcast::<S>(s), outcome, tx)));
@@ -238,6 +277,14 @@ impl PointerEvent {
 }
 
 pub(crate) type PointerFn = Rc<dyn Fn(crate::states::States<'_>, PointerEvent, &mut Tx)>;
+pub(crate) type PointerMotionFn = Rc<dyn Fn(crate::states::States<'_>, [f32; 2], &mut Tx)>;
+
+/// `El::pointer_lock`: what ends the lock besides Escape, and who hears the motion.
+#[derive(Clone)]
+pub(crate) struct PointerLockSpec {
+    pub(crate) release: crate::runtime::PointerLockRelease,
+    pub(crate) motion: PointerMotionFn,
+}
 pub(crate) type DragFn = Rc<dyn Fn(crate::states::States<'_>, &mut Drag, &mut Tx)>;
 pub(crate) type DragOutFn = Rc<dyn Fn(crate::states::StatesRef<'_>) -> Option<crate::DragItem>>;
 pub(crate) type DragEndFn = Rc<dyn Fn(crate::states::States<'_>, crate::DragOutcome, &mut Tx)>;

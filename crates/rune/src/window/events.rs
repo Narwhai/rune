@@ -388,6 +388,7 @@ impl<S: 'static> Host<S> {
                     self.ime_allowed = false;
                     // A minimized or occluded window skips redraw.
                     l.apply_cursor(rt, false);
+                    l.apply_pointer_lock(rt);
                 } else if rt.stale() {
                     rt.ime_reset = true;
                 } else {

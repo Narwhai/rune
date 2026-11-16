@@ -300,8 +300,8 @@ impl<S: 'static> Runtime<S> {
         self.dismiss_help();
         // A key ends a middle-click autoscroll, and does nothing else.
         if self.autoscroll_key() { return; }
-        // Escape during a drag cancels it and goes no further.
-        if ev.key == crate::Key::Escape && self.cancel_drag() { return; }
+        // Escape during a drag or a pointer lock ends them and goes no further.
+        if ev.key == crate::Key::Escape && self.escape_pointer() { return; }
         self.queue.push(Action::Key { ev, repeat: false, stage });
     }
 

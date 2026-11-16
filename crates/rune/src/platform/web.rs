@@ -718,6 +718,8 @@ impl<S: 'static> Browser<S> {
         rt.set_srgb_blend(srgb_blend);
         rt.set_font_smoothing(font_smoothing);
         rt.set_os_drag(false);
+        // No grab here: an `El::pointer_lock` press stays an ordinary press.
+        rt.set_os_pointer_lock(false);
         let now = Instant::now();
         rt.wall_start = Some(now);
         rt.open_urls_natively = true;

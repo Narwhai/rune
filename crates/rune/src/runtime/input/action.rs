@@ -11,6 +11,8 @@ pub(super) enum Action {
     HoverFocus(Option<String>),
     Dismiss(String),
     PointerMove(String, PointerEvent),
+    /// Raw motion while `El::pointer_lock` holds the pointer.
+    PointerLockMotion(String, [f32; 2]),
     Hover(String),
     HoverChange(String, bool),
     /// `El::on_selection_change`.
@@ -98,6 +100,8 @@ impl ActionQueue {
     pub(super) fn push_queued(&mut self, queued: Queued) { self.0.push(queued); }
     /// Puts `queued` ahead of everything queued.
     pub(super) fn prepend(&mut self, queued: Vec<Queued>) { self.0.splice(0..0, queued); }
+    /// The action queued last, to add motion to.
+    pub(super) fn last_mut(&mut self) -> Option<&mut Action> { self.0.last_mut().map(|q| &mut q.action) }
     pub(super) fn iter(&self) -> impl Iterator<Item = &Action> { self.0.iter().map(|q| &q.action) }
     /// Whether any of them came from the user's input (they carry its arrival time).
     pub(super) fn has_input(&self) -> bool { self.0.iter().any(|q| q.at.is_some()) }
@@ -136,6 +140,7 @@ pub(super) fn live_only_handler(action: &Action) -> Option<&'static str> {
         Action::Visible(..) => "on_visible",
         Action::Layout(..) => "on_layout_tx",
         Action::PointerMove(..) => "on_pointer_move_local",
+        Action::PointerLockMotion(..) => "pointer_lock",
         Action::Hover(_) => "on_hover",
         Action::HoverChange(..) => "on_hover_change",
         Action::SelectionChange(..) => "on_selection_change",
@@ -161,7 +166,7 @@ pub(super) fn live_only_handler(action: &Action) -> Option<&'static str> {
 #[cfg(debug_assertions)]
 pub(super) fn action_path(action: &Action) -> Option<&str> {
     match action {
-        Action::PointerMove(path, _) | Action::DrawnLayout(path, ..) | Action::Layout(path, _) | Action::Hover(path) | Action::HoverChange(path, _) | Action::SelectionChange(path, _) | Action::Press(path, _) | Action::DoublePress(path) | Action::MiddlePress(path)
+        Action::PointerMove(path, _) | Action::PointerLockMotion(path, _) | Action::DrawnLayout(path, ..) | Action::Layout(path, _) | Action::Hover(path) | Action::HoverChange(path, _) | Action::SelectionChange(path, _) | Action::Press(path, _) | Action::DoublePress(path) | Action::MiddlePress(path)
         | Action::Link(path, ..) | Action::LinkSecondary(path, ..) | Action::SecondaryPress(path, _) | Action::Drag(path, ..) | Action::DragRepeat(path, ..) | Action::DragStart(path)
         | Action::DragEnd(path, _) | Action::Visible(path, _) => Some(path),
         Action::Wheel { chain, .. } | Action::Gesture(chain, _) => chain.first().map(String::as_str),
@@ -367,6 +372,13 @@ impl<S: 'static> Runtime<S> {
             Action::PointerMove(path, point) => {
                 let Some(f) = self.node(&path).and_then(|n| n.handlers.on_pointer_move.clone()) else { return false };
                 f(states!(self), point, &mut one);
+                true
+            }
+            Action::PointerLockMotion(path, delta) => {
+                let Some(f) = self.node(&path).and_then(|n| n.handlers.pointer_lock.as_ref().map(|l| l.motion.clone())) else { return false };
+                // Each delivery is a step under the hand: nothing animates toward it.
+                one.commit = one.commit.instant();
+                f(states!(self), delta, &mut one);
                 true
             }
             Action::AtBottom(path, at) => {

@@ -233,6 +233,9 @@ mod app_ime;
 mod press_run;
 #[path = "runtime/input/press_repeat.rs"]
 mod press_repeat;
+#[path = "runtime/input/pointer_lock.rs"]
+mod pointer_lock;
+pub(crate) use pointer_lock::{LockEffect, PointerLockRelease};
 #[path = "runtime/input/titlebar.rs"]
 mod titlebar;
 pub(crate) use titlebar::WindowMenu;
@@ -871,6 +874,10 @@ pub struct Runtime<S: 'static> {
     press_clicks: press_run::PressRun,
     /// The held press's drag repeat (`Tx::drag_repeat_after`).
     press_repeat: press_repeat::PressRepeat,
+    /// `El::pointer_lock` (`runtime/input/pointer_lock.rs`).
+    pointer_lock: pointer_lock::PointerLock,
+    /// The host can hold the pointer (`Runtime::set_os_pointer_lock`); headless runs act as one.
+    os_pointer_lock: bool,
     titlebar: titlebar::Titlebar,
     /// Two presses closer than this (seconds) are a double press: the system setting on macOS
     /// and Windows, 0.5 elsewhere and headless.
@@ -1156,6 +1163,8 @@ impl<S: 'static> Runtime<S> {
             ambient: None,
             press_clicks: Default::default(),
             press_repeat: Default::default(),
+            pointer_lock: Default::default(),
+            os_pointer_lock: true,
             titlebar: Default::default(),
             double_click_interval: 0.5,
             os_drag: true,

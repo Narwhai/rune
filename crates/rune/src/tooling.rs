@@ -378,6 +378,8 @@ pub(crate) enum Kind {
     KeyUp(KeyEvent),
     /// A person dragging the window's corner, (dw, dh) from the size where (0, 0) started.
     Resize(f32, f32),
+    /// Raw mouse motion (dx, dy) in points, for a held `El::pointer_lock`.
+    PointerMotion(f32, f32),
 }
 
 impl Kind {
@@ -401,6 +403,7 @@ pub(crate) fn canvas_input<S: 'static>(rt: &mut Runtime<S>, kind: &Kind, (x, y):
         Kind::ButtonDown(b) => rt.button_down(x, y, *b),
         Kind::ButtonUp(b) => rt.button_up(x, y, *b),
         Kind::KeyUp(k) => { rt.key_up(k.clone()); }
+        Kind::PointerMotion(dx, dy) => rt.pointer_motion(*dx, *dy),
         Kind::PhysicalKey(event, k, base) => rt.physical_key_input(*event, k.clone(), *base),
         _ => return false,
     }
@@ -487,6 +490,7 @@ impl Ev {
             Kind::ButtonUp(b) => pointer(PointerAction::ButtonUp(*b)),
             Kind::KeyUp(key) => ScriptEvent::KeyUp(key.clone()),
             Kind::Resize(dw, dh) => ScriptEvent::Resize { dw: *dw, dh: *dh },
+            Kind::PointerMotion(dx, dy) => ScriptEvent::PointerMotion { dx: *dx, dy: *dy },
         };
         TimedEvent { t: self.t, event }
     }

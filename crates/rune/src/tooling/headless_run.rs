@@ -145,6 +145,9 @@ pub enum ScriptEvent {
     DropFiles { paths: Vec<std::path::PathBuf>, at: ScriptPoint },
     /// `{"drag_files": "leave"}`: the file drag left the window.
     DragFilesLeave,
+    /// `{"type": "pointer-motion", "dx": …, "dy": …}`: raw mouse motion in points, which a held
+    /// `El::pointer_lock` hears.
+    PointerMotion { dx: f32, dy: f32 },
 }
 
 #[non_exhaustive]

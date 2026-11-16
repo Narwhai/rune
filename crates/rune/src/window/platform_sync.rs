@@ -30,6 +30,7 @@ pub(super) fn sync_platform<S: 'static>(l: &mut Win, rt: &mut Runtime<S>, secure
         }
     }
     l.apply_cursor(rt, focused);
+    l.apply_pointer_lock(rt);
     #[cfg(target_os = "macos")]
     if rt.zoom() == 1.0 {
         l.native.help.sync(&l.window, rt.help_regions());

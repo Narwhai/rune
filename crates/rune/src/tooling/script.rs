@@ -217,6 +217,10 @@ pub(crate) fn parse_script(list: Value) -> Vec<Ev> {
                 let kind = if ty == "key-up" { Kind::KeyUp(KeyEvent { key, mods }) } else { Kind::Key(KeyEvent { key, mods }, repeat) };
                 out.push(Ev { t, kind, pos: Pos::Rel(0.0, 0.0) });
             }
+            "pointer-motion" => {
+                let d = |k: &str| e[k].as_f64().unwrap_or(0.0) as f32;
+                out.push(Ev { t, kind: Kind::PointerMotion(d("dx"), d("dy")), pos: Pos::Rel(0.0, 0.0) });
+            }
             "wheel" => {
                 // One delta, unlike "scroll"'s eased swipe, with modifiers and a phase.
                 let d = |k: &str| e[k].as_f64().unwrap_or(0.0) as f32;

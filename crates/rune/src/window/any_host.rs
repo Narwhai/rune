@@ -80,6 +80,13 @@ impl<S: 'static> AnyHost for Host<S> {
     fn window_event(&mut self, event_loop: &ActiveEventLoop, id: WindowId, event: WindowEvent) {
         self.in_turn(|h| h.window_event_in_turn(event_loop, id, event))
     }
+    fn pointer_motion(&mut self, delta: (f64, f64)) {
+        if !self.rt.pointer_locked() { return; }
+        let Some(w) = self.win.as_ref().filter(|w| w.window.has_focus()) else { return };
+        let (dx, dy) = pointer_lock::motion_points(delta, self.wayland, w.window.scale_factor(), self.rt.zoom());
+        self.in_turn(|h| h.rt.pointer_motion(dx, dy));
+        if let Some(w) = &self.win { w.request_redraw(); }
+    }
 }
 
 /// Whether a host's turn is inside its app's turn scope now.

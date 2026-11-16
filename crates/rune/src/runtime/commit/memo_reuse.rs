@@ -350,6 +350,7 @@ fn same_handlers(
         on_pointer_move,
         gestures,
         on_drag,
+        pointer_lock,
         drag_out,
         drag_threshold,
         touch_at_once,
@@ -396,6 +397,11 @@ fn same_handlers(
         && opt_rc_eq(&a.on_pointer_move, on_pointer_move)
         && same_gestures(&a.gestures, gestures)
         && opt_rc_eq(&a.on_drag, on_drag)
+        && match (&a.pointer_lock, pointer_lock) {
+            (None, None) => true,
+            (Some(la), Some(lb)) => la.release == lb.release && Rc::ptr_eq(&la.motion, &lb.motion),
+            _ => false,
+        }
         && opt_rc_eq(&a.drag_out, drag_out)
         && a.drag_threshold == *drag_threshold
         && a.touch_at_once == *touch_at_once

@@ -398,6 +398,8 @@ impl<T: 'static> Overlay<T> {
         rt.wall_start = Some(Instant::now());
         rt.native_overlay = true;
         rt.set_os_drag(crate::drag_out::SUPPORTED);
+        // No grab here: an `El::pointer_lock` press stays an ordinary press.
+        rt.set_os_pointer_lock(false);
         rt.on_key = on_key;
         rt.set_modifier_keys(modifier_keys);
         rt.on_focus = on_focus;

@@ -62,6 +62,8 @@ pub struct Cx<S> {
     pub(super) system_increased_contrast: bool,
     pub(super) system_scroll_bars: crate::platform::scroll_bars::SystemScrollBars,
     pub(super) system_reduced_motion: bool,
+    /// [`Cx::pointer_locked`].
+    pub(super) pointer_locked: bool,
     pub(super) reduced_motion: bool,
     pub(super) time_scale: f32,
     /// [`Cx::zoom`], read once the view returns.
@@ -87,7 +89,7 @@ impl<S> Cx<S> {
             system_contrast: self.system_contrast,
             system_increased_contrast: self.system_increased_contrast,
             system_scroll_bars: self.system_scroll_bars,
-            system_reduced_motion: self.system_reduced_motion, reduced_motion: self.reduced_motion, time_scale: self.time_scale, zoom: self.zoom,
+            system_reduced_motion: self.system_reduced_motion, pointer_locked: self.pointer_locked, reduced_motion: self.reduced_motion, time_scale: self.time_scale, zoom: self.zoom,
             caret: self.caret.clone(), caret_read: self.caret_read.clone(),
             layout: self.layout.clone(), layout_reads: self.layout_reads.clone(), _s: PhantomData,
         }
@@ -274,6 +276,12 @@ impl<S> Cx<S> {
     /// The host's OS accessibility preference, independent of this commit's override.
     pub fn system_reduced_motion(&self) -> bool {
         self.system_reduced_motion
+    }
+    /// An element's [`El::pointer_lock`](crate::El::pointer_lock) holds the pointer: for a
+    /// "click to look around" hint, or "Esc to let go". The view re-runs when it changes; a
+    /// memo that reads it should take it as an input.
+    pub fn pointer_locked(&self) -> bool {
+        self.pointer_locked
     }
     /// The user's "Show scroll bars" preference (System Settings › Appearance on macOS;
     /// [`ScrollBars::WhenScrolling`](crate::ScrollBars::WhenScrolling) elsewhere and headless).
