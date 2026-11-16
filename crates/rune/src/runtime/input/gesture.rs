@@ -183,6 +183,7 @@ impl<S: 'static> Runtime<S> {
     /// text with `on_link`, or an element with [`El::on_middle_press`], each clicked when the
     /// button comes up over it.
     pub fn button_down(&mut self, x: f32, y: f32, button: PointerButton) {
+        let (x, y) = self.locked_at(x, y);
         match button {
             PointerButton::Primary => return self.pointer_down(x, y),
             PointerButton::Secondary => return self.secondary_down(x, y),
@@ -242,6 +243,7 @@ impl<S: 'static> Runtime<S> {
 
     /// A mouse button came up at (x, y): the release of [`Self::button_down`].
     pub fn button_up(&mut self, x: f32, y: f32, button: PointerButton) {
+        let (x, y) = self.locked_at(x, y);
         self.tint.release(button);
         if !matches!(button, PointerButton::Primary | PointerButton::Secondary) && self.autoscroll_release(button) { self.pointer = Some((x, y)); return; }
         match button {

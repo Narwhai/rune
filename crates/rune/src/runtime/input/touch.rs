@@ -93,6 +93,8 @@ impl<S: 'static> Runtime<S> {
         let scroll = self.touch_scroll_start(x, y);
         self.pointer_move(x, y);
         self.pointer_down(x, y);
+        // A finger has no raw motion to send: it drags as a finger does, never locked.
+        self.release_pointer_lock();
         // `El::touch_drags_at_once`: a drag from the first move, and no long press to cut it.
         if self.press_drags_at_once() {
             self.touch_scroll_end(scroll, 0.0);

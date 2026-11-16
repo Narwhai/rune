@@ -5,7 +5,15 @@ use super::*;
 pub(super) const CLICK_SLOP: f32 = 4.0;
 
 impl<S: 'static> Runtime<S> {
-    pub fn pointer_move(&mut self, x: f32, y: f32) { self.move_pointer(x, y, true); }
+    /// While [`El::pointer_lock`] holds the pointer, moves change nothing: it stays where the
+    /// press took it.
+    pub fn pointer_move(&mut self, x: f32, y: f32) {
+        if self.pointer_locked() { return; }
+        self.move_pointer(x, y, true);
+    }
+
+    /// (x, y), or where a held pointer lock pins every button.
+    pub(super) fn locked_at(&self, x: f32, y: f32) -> (f32, f32) { self.lock_point().unwrap_or((x, y)) }
 
     /// `drag_move` false keeps a held drag from getting a `Phase::Move`: a release at the
     /// point the drag last saw has nothing new to report, and its instant transaction would
@@ -108,6 +116,7 @@ impl<S: 'static> Runtime<S> {
     }
 
     pub(crate) fn cancel_pointer(&mut self) {
+        self.release_pointer_lock();
         // differs from dev: a cancelled press cannot pair with a click after refocusing.
         self.titlebar.clear();
         self.autoscroll_cancel();
@@ -204,6 +213,7 @@ impl<S: 'static> Runtime<S> {
     }
 
     pub fn pointer_down(&mut self, x: f32, y: f32) {
+        let (x, y) = self.locked_at(x, y);
         // A press ends a middle-click autoscroll, and does nothing else.
         if self.autoscroll_press(crate::PointerButton::Primary) { self.pointer = Some((x, y)); return; }
         if self.press.held().is_some_and(|h| h.button != crate::PointerButton::Primary) {
@@ -324,10 +334,17 @@ impl<S: 'static> Runtime<S> {
         if n.handlers.on_drag.is_some() && drag_out.is_none() {
             self.queue.push(Action::Drag(path.clone(), d, crate::PointerButton::Primary));
         }
+        self.pointer_lock_press(ti, x, y);
         self.press.hold(capture::Held::new(path, d, crate::PointerButton::Primary, (x, y), now, second, drag_out).on_link(link));
     }
 
     pub fn pointer_up(&mut self, x: f32, y: f32) {
+        let (x, y) = self.locked_at(x, y);
+        self.primary_up(x, y);
+        self.pointer_lock_button_up();
+    }
+
+    fn primary_up(&mut self, x: f32, y: f32) {
         if self.autoscroll_release(crate::PointerButton::Primary) { self.pointer = Some((x, y)); return; }
         #[cfg(target_os = "linux")]
         self.primary_released();
@@ -342,6 +359,7 @@ impl<S: 'static> Runtime<S> {
     /// cancelled at (x, y), and any other press is released there.
     #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     pub(crate) fn pointer_release_lost(&mut self, x: f32, y: f32) {
+        let (x, y) = self.locked_at(x, y);
         let held = self.press.held().filter(|h| h.button == crate::PointerButton::Primary)
             .map(|h| (h.left, h.moved || !press_run::within_slop(h.at, (x, y))));
         if let Some((left, moved)) = held && self.cancel_drag_at(Some((x, y))) {
@@ -350,8 +368,9 @@ impl<S: 'static> Runtime<S> {
             self.move_pointer(x, y, false);
             self.leave_after_release(left);
         } else {
-            self.pointer_up(x, y);
+            self.primary_up(x, y);
         }
+        self.pointer_lock_button_up();
     }
 
     /// What input has queued for handlers, emptied: each drag event, `None` for a press.
@@ -429,6 +448,7 @@ impl<S: 'static> Runtime<S> {
     }
 
     pub fn pointer_leave(&mut self) {
+        if self.pointer_locked() { return; }
         self.wheel_lost();
         if !self.pointer_captured() {
             self.pointer = None;
@@ -454,6 +474,7 @@ impl<S: 'static> Runtime<S> {
     /// the pointer, else the one under it in the current frame (the held hover while moving
     /// layout holds it), from the nearest ancestor that sets one. The arrow while the pointer is outside the window.
     pub fn cursor(&self) -> crate::el::Cursor {
+        if self.pointer_locked() { return crate::el::Cursor::Hidden; }
         let Some((x, y)) = self.pointer.filter(|&(x, y)| self.in_viewport(x, y)) else { return crate::el::Cursor::Default };
         if let Some(pan) = self.autoscroll_cursor() { return pan; }
         // An element on its way out has no cursor: `Cursor::Hidden` ends when it's removed.

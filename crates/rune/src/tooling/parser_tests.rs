@@ -189,3 +189,10 @@ fn scripts_drive_wheels_pinches_other_buttons_and_key_releases() {
     assert!(matches!(last.public().event, ScriptEvent::KeyUp(_)));
     assert!(matches!(script[1].public().event, ScriptEvent::Pointer { action: PointerAction::Wheel(_), .. }));
 }
+
+#[test]
+fn scripts_feed_raw_motion_to_a_held_pointer_lock() {
+    let script = parse_script(json!([{"type": "pointer-motion", "dx": 40, "dy": -2.5}]));
+    assert!(matches!(script[0].kind, Kind::PointerMotion(dx, dy) if dx == 40.0 && dy == -2.5));
+    assert!(matches!(script[0].public().event, ScriptEvent::PointerMotion { dx, dy } if dx == 40.0 && dy == -2.5));
+}

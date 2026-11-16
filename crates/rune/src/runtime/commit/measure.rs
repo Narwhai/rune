@@ -55,6 +55,7 @@ impl<S: 'static> Runtime<S> {
             viewport: self.viewport,
             fit_height: self.fit_height,
             system_reduced_motion: self.system_reduced_motion,
+            pointer_locked: self.pointer_locked(),
             // The window's controls are in its points; the view's are over the zoom.
             titlebar_inset: self.titlebar_inset / self.zoom.k,
             chrome: self.titlebar.insets.zoomed(self.zoom.k),
@@ -475,6 +476,7 @@ impl<S: 'static> Measurement<'_, S> {
             system_increased_contrast: this.system_increased_contrast,
             system_scroll_bars: this.system_scroll_bars,
             system_reduced_motion: this.system_reduced_motion,
+            pointer_locked: this.pointer_locked,
             reduced_motion: this.system_reduced_motion,
             time_scale: this.time_scale,
             zoom: 1.0,

@@ -861,6 +861,7 @@ impl<S: 'static> Runtime<S> {
         self.report_at_bottom();
         animating |= self.report_visible_rows();
         self.report_layout();
+        self.sync_pointer_lock();
         // A report waits for the next frame: draw one to deliver it.
         animating |= self.report_drawn() | self.report_visible();
         self.end_exit_mask();

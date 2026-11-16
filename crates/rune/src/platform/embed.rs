@@ -102,6 +102,8 @@ impl<S: 'static> LayerHost<S> {
         let mut rt = runtime_for(spec, state, (w, h), Env::new(dark, scale), wake);
         rt.set_srgb_blend(true);
         rt.set_os_drag(false);
+        // No grab here: an `El::pointer_lock` press stays an ordinary press.
+        rt.set_os_pointer_lock(false);
         let now = Instant::now();
         rt.wall_start = Some(now);
         rt.record_events = false;

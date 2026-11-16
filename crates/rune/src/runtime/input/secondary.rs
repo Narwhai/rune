@@ -25,6 +25,7 @@ impl<S: 'static> Runtime<S> {
 
     /// Capture a secondary gesture without activating primary actions or text selection.
     pub fn secondary_down(&mut self, x: f32, y: f32) {
+        let (x, y) = self.locked_at(x, y);
         self.pointer = Some((x, y));
         if self.autoscroll_press(crate::PointerButton::Secondary) { return; }
         self.tint_down(x, y, crate::PointerButton::Secondary);
@@ -90,6 +91,7 @@ impl<S: 'static> Runtime<S> {
     }
 
     pub fn secondary_up(&mut self, x: f32, y: f32) {
+        let (x, y) = self.locked_at(x, y);
         self.pointer = Some((x, y));
         self.tint.release(crate::PointerButton::Secondary);
         if self.autoscroll_release(crate::PointerButton::Secondary) { return; }

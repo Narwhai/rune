@@ -252,6 +252,7 @@ impl<S: 'static> Host<S> {
             backoff: Backoff::default(),
             hidden_pace: HiddenPace::default(),
             cursor: crate::cursor::os::OsCursor::new(),
+            grab: None,
             alpha,
             timer_frame: TimerFrame::default(),
             presented: None,

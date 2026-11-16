@@ -3,7 +3,7 @@
 use crate::cold::Empty;
 use crate::el::{
     AtBottomFn, Cursor, DragEndFn, DragFn, DragOutFn, DropSpec, LanguagesFn, LayoutFn, LayoutTxFn, ModalSpec,
-    PasteFn, PointerFn, PressFn, ScrollOffsetFn, SelectionChangeFn, SelectionCopy, VisibleRowsFn,
+    PasteFn, PointerFn, PointerLockSpec, PressFn, ScrollOffsetFn, SelectionChangeFn, SelectionCopy, VisibleRowsFn,
     WindowFocusFn,
 };
 
@@ -29,6 +29,8 @@ pub(crate) struct Handlers {
     /// `on_wheel`, `on_magnify` and the other canvas handlers (`canvas_input.rs`).
     pub gestures: Option<Box<crate::input::canvas_input::CanvasInput>>,
     pub on_drag: Option<DragFn>,
+    /// `El::pointer_lock` and `El::pointer_lock_while_held`.
+    pub pointer_lock: Option<PointerLockSpec>,
     pub drag_out: Option<DragOutFn>,
     pub drag_threshold: Option<f32>,
     /// `El::touch_drags_at_once`.
@@ -82,6 +84,7 @@ impl Handlers {
             || self.on_hover.is_some()
             || self.on_drag.is_some()
             || self.drag_out.is_some()
+            || self.pointer_lock.is_some()
     }
 
     #[inline]
@@ -95,6 +98,7 @@ impl Handlers {
             || self.on_hover_change.is_some()
             || self.on_drag.is_some()
             || self.drag_out.is_some()
+            || self.pointer_lock.is_some()
             || self.modal.is_some()
             || self.gestures.as_ref().is_some_and(|g| g.takes_gestures())
     }
@@ -117,6 +121,7 @@ impl Empty for Handlers {
         on_pointer_move: None,
         gestures: None,
         on_drag: None,
+        pointer_lock: None,
         drag_out: None,
         drag_threshold: None,
         touch_at_once: false,
